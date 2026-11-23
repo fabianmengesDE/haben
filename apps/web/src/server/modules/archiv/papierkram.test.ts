@@ -21,6 +21,15 @@ function zeilen(kontenrahmen: Kontenrahmen): Zeile[] {
     { betrag: "119,00", seite: "S", konto: aufwand, gegenkonto: geld, bu: "401", datum: "0501", beleg: "B-00001", guid: guid(1), text: "Büromaterial" },
     { betrag: "500,00", seite: "H", konto: erloes, gegenkonto: geld, datum: "1901", beleg: "B-00003", guid: guid(3) },
     { betrag: "500,00", seite: "S", konto: erloes, gegenkonto: geld, datum: "2501", beleg: "B-00003", guid: guid(3), generalumkehr: true },
+    // Abschreibung zum Jahresende auf die Anschaffung B-00001, ohne Beleglink
+    {
+      betrag: "100,00",
+      seite: "S",
+      konto: kontenrahmen === "SKR03" ? "4855" : "6260",
+      gegenkonto: kontenrahmen === "SKR03" ? "0480" : "0670",
+      datum: "3112",
+      beleg: "Ref-B-00001",
+    },
   ];
 }
 
@@ -71,8 +80,8 @@ describe.skipIf(!testDatabaseUrl)("Papierkram: DATEV-Export übernehmen (Postgre
 
   it("analysiert, ohne etwas anzulegen, und lehnt Fremdes ab", async () => {
     const analysis = await pk.analysePapierkramExport(files("SKR03"));
-    expect(analysis).toMatchObject({ years: [2026], bookings: 4, vouchers: 3, withFile: 3, missingFile: 0, cancelled: 1 });
-    expect(analysis.stacks).toEqual([{ name: CSV, from: "2026-01-05", to: "2026-04-16", state: "neu" }]);
+    expect(analysis).toMatchObject({ years: [2026], bookings: 5, vouchers: 3, withFile: 3, missingFile: 0, cancelled: 1 });
+    expect(analysis.stacks).toEqual([{ name: CSV, from: "2026-01-05", to: "2026-12-31", state: "neu" }]);
     const [{ n }] = await sql`select count(*)::int as n from lexoffice_vouchers`;
     expect(n).toBe(0);
     await expect(pk.analysePapierkramExport([{ name: ZIP, bytes: belegbilder([guid(1)]) }])).rejects.toThrow(/Buchungsstapel/);
@@ -122,12 +131,14 @@ describe.skipIf(!testDatabaseUrl)("Papierkram: DATEV-Export übernehmen (Postgre
       },
     ]);
     const [{ bookings }] = await sql`select count(*)::int as bookings from datev_bookings`;
-    expect(bookings).toBe(4);
+    expect(bookings).toBe(5);
 
     // Abgleich: Belege aus dem Export statt „per API“, bei Ist bleibt die Zahlungshistorie offen
     const year = (await lex.reconciliation()).years.find((y) => y.year === 2026)!;
     expect(year.checks.find((c) => c.label === "Belege aus dem Papierkram-Export übernommen")?.detail).toBe("3 Belege, 3 mit Datei");
     expect(year.checks.some((c) => c.label === "Belege und Rechnungen per API abgerufen")).toBe(false);
+    // Die Abschreibung (Ref-B-00001) findet den Beleg der Anschaffung
+    expect(year.checks.find((c) => c.label === "Jede Buchung mit Belegnummer findet ihren Beleg")).toMatchObject({ ok: true });
     if (versteuerung === "ist") expect(year.vatIssue).toMatch(/Papierkram-Export ordnet Zahlungen keinem Beleg zu/);
     else expect(year.vatIssue ?? "").not.toMatch(/ordnet Zahlungen/);
 

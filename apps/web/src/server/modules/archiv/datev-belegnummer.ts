@@ -27,10 +27,15 @@ export function truncatedNumberMatches(alias: string, value: SQL): SQL<boolean> 
       or lower(right(regexp_replace(${table}.number, '\\s+', '', 'g'), ${length})) = ${wanted}))))`;
 }
 
-/** Gibt es zur Belegnummer der Buchung einen Beleg? Ohne Leerzeichen, Groß-/Kleinschreibung egal. */
+/**
+ * Gibt es zur Belegnummer der Buchung einen Beleg? Ohne Leerzeichen, Groß-/Kleinschreibung egal. Papierkram schreibt
+ * Abschreibungen zum Jahresende mit `Ref-<Belegnummer>` der Anschaffung (echte Exporte 2025 und 2026); sie gehören zu
+ * deren Beleg.
+ */
 export function datevVoucherFound(field: string): SQL<boolean> {
   const exact = sql.raw(`${normalized("v.number")} = ${normalized(field)}`);
-  return sql<boolean>`exists (select 1 from lexoffice_vouchers v where v.number <> '' and (${exact} or ${truncatedNumberMatches("v", sql.raw(field))}))`;
+  const reference = sql.raw(`(v.source = 'papierkram' and 'ref-' || ${normalized("v.number")} = ${normalized(field)})`);
+  return sql<boolean>`exists (select 1 from lexoffice_vouchers v where v.number <> '' and (${exact} or ${reference} or ${truncatedNumberMatches("v", sql.raw(field))}))`;
 }
 
 /** Die GUID aus einem Beleglink `BEDI "<guid>"`, sonst null */
