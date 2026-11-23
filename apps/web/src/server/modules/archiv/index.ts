@@ -93,6 +93,16 @@ export {
   startSevdeskExportImport,
   type SevdeskExportRun,
 } from "./sevdesk-export.ts";
+export {
+  analysePapierkramExport,
+  cancelPapierkramImport,
+  latestPapierkramImport,
+  MAX_PAPIERKRAM_UPLOAD_SIZE,
+  PapierkramError,
+  papierkramImportStatus,
+  startPapierkramImport,
+  type PapierkramRun,
+} from "./papierkram.ts";
 
 export { bookDatevEroeffnung, datevEroeffnung, DatevEroeffnungError, datevEroeffnungSchema, type DatevEroeffnung } from "./datev-eroeffnung.ts";
 export { legacyDunningFile, legacyDunningsFor, type LegacyDunningRow } from "./mahnungen-archiv.ts";

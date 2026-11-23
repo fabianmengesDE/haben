@@ -130,7 +130,7 @@ describe.skipIf(!testDatabaseUrl)("sevDesk ohne API: Abgleich je Jahr (Postgres)
       await run(exportZip(kontenrahmen, { ohneAusgabebild: true }));
       await archivieren();
       const year = await jahr();
-      expect(year.sevdeskExport).toEqual({ withFile: 1, missingFile: 1, withoutImage: 1 });
+      expect(year.sevdeskExport).toEqual({ label: "sevDesk-Export", withFile: 1, missingFile: 1, withoutImage: 1 });
       expect(check(year, "Belege aus dem sevDesk-Export übernommen")).toEqual({
         ok: true,
         label: "Belege aus dem sevDesk-Export übernommen",
@@ -149,7 +149,7 @@ describe.skipIf(!testDatabaseUrl)("sevDesk ohne API: Abgleich je Jahr (Postgres)
       await run(exportZip(kontenrahmen));
       await archivieren();
       const year = await jahr();
-      expect(year.sevdeskExport).toEqual({ withFile: 2, missingFile: 0, withoutImage: 1 });
+      expect(year.sevdeskExport).toEqual({ label: "sevDesk-Export", withFile: 2, missingFile: 0, withoutImage: 1 });
       expect(check(year, "Jeder Beleg hat eine Datei")).toMatchObject({ ok: true, detail: "alle mit Datei" });
       expect(year.bookings).toMatchObject({ unmatched: 0 });
       if (versteuerung === "soll") {

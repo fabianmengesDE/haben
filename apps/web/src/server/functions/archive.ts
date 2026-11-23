@@ -49,7 +49,7 @@ import {
 } from "../modules/archiv/index.ts";
 import { FASTBILL_PLANS, fastbillConnectionStatus, fastbillReceiptsOverview, fastbillUsage, latestFastbillImport } from "../modules/archiv/index.ts";
 import { bbSummary, latestBuchhaltungsbutlerImport, MAX_BB_EXPORT_SIZE, previewBbExport, startBuchhaltungsbutlerImport } from "../modules/archiv/index.ts";
-import { latestSevdeskExportImport } from "../modules/archiv/index.ts";
+import { latestPapierkramImport, latestSevdeskExportImport } from "../modules/archiv/index.ts";
 import { latestWisoImport, MAX_WISO_CSV_SIZE, previewWisoCsv, startWisoImport, wisoSummary } from "../modules/archiv/index.ts";
 import { authMiddleware } from "../middleware.ts";
 import { UserError } from "../errors.ts";
@@ -80,6 +80,7 @@ export const getMigration = createServerFn({ method: "GET" })
       fastbillImport,
       fastbillReceipts,
       sevdeskExportImport,
+      papierkramImport,
     ] = await Promise.all([
       connectionStatus(),
       reconciliation(),
@@ -97,12 +98,14 @@ export const getMigration = createServerFn({ method: "GET" })
       latestFastbillImport(),
       fastbillReceiptsOverview(),
       latestSevdeskExportImport(),
+      latestPapierkramImport(),
     ]);
     return {
       connection,
       sevdeskConnection,
       sevdeskImport,
       sevdeskExportImport,
+      papierkramImport,
       fastbillConnection,
       fastbillUsage: fastbillCallsUsed,
       fastbillImport,

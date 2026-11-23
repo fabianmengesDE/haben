@@ -16,8 +16,8 @@ export type ImportRow = NonNullable<MigrationData["lastImport"]>;
 /** Quellen mit API-Verbindung: Schlüssel speichern, entfernen, Abruf starten */
 export type ConnectedSource = "lexoffice" | "sevdesk" | "fastbill";
 export type FastbillPlan = MigrationData["fastbillPlans"][number];
-/** Alle Quellen; Accountable, BuchhaltungsButler und WISO kennen keine API, dort gibt es nur den Datei-Upload */
-export type Source = ConnectedSource | "accountable" | "buchhaltungsbutler" | "wiso";
+/** Alle Quellen; Accountable, BuchhaltungsButler und WISO kennen keine API, dort gibt es nur den Datei-Upload, ebenso Papierkram */
+export type Source = ConnectedSource | "accountable" | "buchhaltungsbutler" | "wiso" | "papierkram";
 
 /** Was sich je Quelle unterscheidet: Name, Schlüssel und die Server-Funktionen für Verbindung und Abruf */
 export const SOURCES = {
@@ -88,4 +88,10 @@ export const WISO_CONFIG = {
   importHelp: "Liest den CSV-Export der Buchungen aus WISO Steuer (Modul EÜR) oder WISO EÜR & Kasse ins Archiv ein.",
   exportsHelp: "Der WISO-Import legt die Original-CSV bereits ab. Ergänze je Geschäftsjahr noch GoBD-Export, ELSTER-Protokolle und Kontoauszüge.",
 } as const;
-export const ALL_SOURCES = { ...SOURCES, buchhaltungsbutler: BB_CONFIG, wiso: WISO_CONFIG } as const;
+export const PAPIERKRAM_CONFIG = {
+  product: "Papierkram",
+  importHelp: "Liest den DATEV-Export von Papierkram ein: je Jahr den Buchungsstapel (CSV) und die Belegbilder (ZIP).",
+  exportsHelp:
+    "Der Papierkram-Import legt Buchungsstapel und Belegbilder bereits ab. Ergänze je Geschäftsjahr noch die ELSTER-Übertragungsprotokolle und die Kontoauszüge der Bank als PDF.",
+} as const;
+export const ALL_SOURCES = { ...SOURCES, buchhaltungsbutler: BB_CONFIG, wiso: WISO_CONFIG, papierkram: PAPIERKRAM_CONFIG } as const;

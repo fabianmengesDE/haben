@@ -42,13 +42,14 @@ function linkGuid(linkField: string): SQL {
  * Accountable hängt an jede Buchung einen Beleglink `BEDI "<guid>"` und legt den Beleg unter derselben
  * GUID ab. Eine Rechnung kann mehrere Buchungszeilen haben (Hauptbetrag, Versand, Kleinteile); nur die
  * erste Zeile trägt dann die Belegnummer. Über die GUID finden auch die übrigen Zeilen ihren Beleg.
- * Ebenso die Belege aus der Export-ZIP von sevDesk (#1106): Schlüssel ist dort die GUID aus dem Beleglink.
+ * Ebenso die Belege aus der Export-ZIP von sevDesk (#1106) und aus dem DATEV-Export von Papierkram: Sie tragen die GUID
+ * aus dem Beleglink.
  */
 export function datevGuidFound(linkField: string): SQL<boolean> {
   const guid = linkGuid(linkField);
   return sql<boolean>`(${guid} is not null and exists (
     select 1 from lexoffice_vouchers g
-     where g.source in ('accountable', 'sevdesk-export') and lower(g.raw->>'guid') = lower(${guid})))`;
+     where g.source in ('accountable', 'sevdesk-export', 'papierkram') and lower(g.raw->>'guid') = lower(${guid})))`;
 }
 
 /**

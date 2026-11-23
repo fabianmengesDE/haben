@@ -1,4 +1,4 @@
-import { AUTOMATIC, datevAccountKind, shortAccount, type DatevBooking } from "../datev.ts";
+import { AUTOMATIC, BU_RATES, datevAccountKind, shortAccount, type DatevBooking } from "../datev.ts";
 import type { PkExportOptions, PkFile, PkLine, PkStack, PkVoucher } from "./types.ts";
 
 /*
@@ -21,8 +21,7 @@ import type { PkExportOptions, PkFile, PkLine, PkStack, PkVoucher } from "./type
  */
 
 const BEDI = /^BEDI\s+"([^"]+)"\s*$/i;
-/** Steuersatz in Prozent je BU-Schlüssel; 506 (§ 13b) hebt sich als Vor- und Umsatzsteuer auf und bleibt außen vor */
-const BU_RATES: Record<string, number> = { "2": 7, "3": 19, "8": 7, "9": 19, "401": 19 };
+/** Ohne Steuer am Beleg; 506 (§ 13b) hebt sich als Vor- und Umsatzsteuer auf */
 const NO_TAX_KEYS = new Set(["40", "490", "506"]);
 const NAMED_RATE = /(\d{1,2})\s*%\s*(USt|Vorsteuer|VSt)\b/i;
 

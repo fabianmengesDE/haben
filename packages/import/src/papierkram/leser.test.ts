@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
+import { pkArchiveVoucher } from "./archivbeleg.ts";
 import { readPapierkramExport } from "./leser.ts";
 import { belegbilder, guid, pdf, stapel, type Zeile } from "./testdaten.ts";
 import type { PkExport, PkUpload } from "./types.ts";
@@ -60,6 +61,20 @@ describe("Belege aus dem Buchungsstapel", () => {
       ]),
     ]);
     expect(beleg(data, "B-00013")).toMatchObject({ direction: "ausgabe", gross: 3200, tax: 0, net: 3200, rate: 0 });
+  });
+
+  it("erkennt ein Kleinunternehmerjahr am Erlöskonto für Kleinunternehmer, auch wenn Haben es nicht kennt", () => {
+    const zeilen: Zeile[] = [
+      { betrag: "60,49", seite: "H", konto: "8195", gegenkonto: "1800", datum: "1212", beleg: "R-00001" },
+      { betrag: "119,00", seite: "S", konto: "3400", gegenkonto: "1890", datum: "1711", beleg: "B-00013" },
+    ];
+    const result = readPapierkramExport([csv(2022, zeilen)], { kontenrahmen: "SKR03", kleinunternehmerAm: () => false });
+    if (!result.ok) throw new Error(result.reason);
+    expect(beleg(result.export, "B-00013")).toMatchObject({ gross: 11900, tax: 0 });
+    expect(result.export.hints).toContain("2022: Erlöse auf dem Konto für Kleinunternehmer; Haben rechnet das Jahr ohne Umsatz- und Vorsteuer.");
+    const ohne = readPapierkramExport([csv(2022, [zeilen[1]!])], { kontenrahmen: "SKR03", kleinunternehmerAm: () => false });
+    if (!ohne.ok) throw new Error(ohne.reason);
+    expect(beleg(ohne.export, "B-00013")).toMatchObject({ gross: 11900, tax: 1900 });
   });
 
   it("rechnet nach der Kleinunternehmerzeit Steuer aus Schlüssel 401 und aus der Automatik in der Kontobezeichnung", () => {
@@ -148,5 +163,21 @@ describe("Dateien des Exports", () => {
     expect(readPapierkramExport([csv(2022, eine), ohneXml], options)).toMatchObject({ ok: false, reason: expect.stringContaining("document.xml fehlt") });
     expect(readPapierkramExport([csv(2022, eine), csv(2022, eine)], options)).toMatchObject({ ok: false, reason: expect.stringContaining("überschneiden") });
     expect(readPapierkramExport([zip(2022, [guid(1)])], options)).toMatchObject({ ok: false, reason: expect.stringContaining("Buchungsstapel") });
+  });
+});
+
+describe("Archivbeleg", () => {
+  it("nimmt die Belegnummer als Schlüssel, storniert als voided und Gutschriften negativ", () => {
+    const data = read([
+      csv(2026, [
+        { betrag: "1670,08", seite: "H", konto: "8514", gegenkonto: "1800", datum: "1901", beleg: "B-00345" },
+        { betrag: "1670,08", seite: "S", konto: "8514", gegenkonto: "1890", datum: "2501", beleg: "B-00345", generalumkehr: true },
+        { betrag: "20,00", seite: "S", konto: "8195", gegenkonto: "1890", datum: "0302", beleg: "B-00400" },
+        { betrag: "119,00", seite: "S", konto: "4930", gegenkonto: "1890", bu: "401", datum: "0501", beleg: "B-00001", text: "Papier" },
+      ]),
+    ]);
+    expect(pkArchiveVoucher(beleg(data, "B-00345"))).toMatchObject({ externalId: "papierkram/B-00345", type: "salesinvoice", status: "voided" });
+    expect(pkArchiveVoucher(beleg(data, "B-00400"))).toMatchObject({ type: "salescreditnote", direction: "einnahme", gross: -2000 });
+    expect(pkArchiveVoucher(beleg(data, "B-00001"))).toMatchObject({ type: "purchaseinvoice", status: "unchecked", net: 10000, tax: 1900, remark: "Papier" });
   });
 });

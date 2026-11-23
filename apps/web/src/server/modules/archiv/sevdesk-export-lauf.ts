@@ -1,10 +1,10 @@
-import { archiveVoucherOf, type SevExportStack, type SevExportVoucher } from "@haben/import";
-import { and, eq, sql } from "drizzle-orm";
-import { db, schema, type Tx } from "../../db/index.ts";
+import { archiveVoucherOf, type SevExportVoucher } from "@haben/import";
+import { eq } from "drizzle-orm";
+import { schema, type Tx } from "../../db/index.ts";
 import { UserError } from "../../errors.ts";
 import type { LexofficeImportProgress, SevdeskExportProgress } from "../../db/schema.ts";
-import { sha256Of, sniff, storeFile } from "../../storage.ts";
-import { storeDatevBookings } from "./accountable-import.ts";
+import { sniff, storeFile } from "../../storage.ts";
+import { storeOriginal, storeStack } from "./export-ablage.ts";
 import { progressMessage } from "./lexoffice.ts";
 import { sevdeskExportNeedsFile } from "./sevdesk-export-abgleich.ts";
 import type { StagedSevdeskExport } from "./sevdesk-export.ts";
@@ -45,7 +45,7 @@ export async function runSevdeskExportImport(
   result.archivedFileId = await storeZip(tx, importId, upload, year);
   result.stackFileIds = [];
   for (const stack of upload.export.stacks) {
-    const id = await storeStack(tx, importId, stack);
+    const id = await storeStack(tx, stack, `Aus dem sevDesk-Export, Lauf ${importId.slice(0, 8)}`);
     if (id) result.stackFileIds.push(id);
   }
   await save(true);
@@ -96,74 +96,14 @@ function noteFor(r: SevdeskExportProgress): string {
     .join(" ");
 }
 
-async function existingFile(sha256: string): Promise<string | null> {
-  const [row] = await db.select({ id: schema.archiveFiles.id }).from(schema.archiveFiles).where(eq(schema.archiveFiles.sha256, sha256));
-  return row?.id ?? null;
-}
-
 /** Die ZIP unverändert unter „Sonstiges“; liegt sie schon im Archiv, verweist der Lauf auf sie. */
-async function storeZip(tx: Tx, importId: string, upload: StagedSevdeskExport, year: number | null): Promise<string> {
-  const sha256 = sha256Of(upload.bytes);
-  const known = await existingFile(sha256);
-  if (known) return known;
-  await storeFile(upload.bytes);
-  const [row] = await tx
-    .insert(schema.archiveFiles)
-    .values({
-      kind: "sonstiges",
-      year,
-      filename: upload.filename.slice(0, 200),
-      sha256,
-      mimeType: "application/zip",
-      size: upload.bytes.byteLength,
-      note: `sevDesk-Export „Buchungsdaten & Belegbilder“, Lauf ${importId.slice(0, 8)}`,
-    })
-    .returning({ id: schema.archiveFiles.id });
-  return row!.id;
-}
-
-/**
- * Ein Stapel als DATEV-Buchungsstapel mit seinen Zeilen. Gleiche Datei: die vorhandene. Anderer Stapel im selben Zeitraum:
- * null, nichts angelegt (wie addArchiveFile, nur ohne Abbruch des Laufs).
- */
-async function storeStack(tx: Tx, importId: string, { name, bytes, stack }: SevExportStack): Promise<string | null> {
-  const sha256 = sha256Of(bytes);
-  const known = await existingFile(sha256);
-  if (known) return known;
-  const dates = stack.bookings.map((b) => b.date).sort();
-  const from = dates[0];
-  const to = dates.at(-1);
-  if (!from || !to) return null;
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtext('haben.archive.datev'))`);
-  const [overlap] = await tx
-    .select({ id: schema.archiveFiles.id })
-    .from(schema.archiveFiles)
-    .where(
-      and(
-        eq(schema.archiveFiles.kind, "datev"),
-        sql`${schema.archiveFiles.meta} ->> 'dateFrom' <= ${to}`,
-        sql`${schema.archiveFiles.meta} ->> 'dateTo' >= ${from}`,
-      ),
-    )
-    .limit(1);
-  if (overlap) return null;
-  await storeFile(bytes);
-  const [row] = await tx
-    .insert(schema.archiveFiles)
-    .values({
-      kind: "datev",
-      year: Number((stack.header.fiscalYearStart || from).slice(0, 4)),
-      filename: (name.split("/").pop() ?? name).slice(0, 200),
-      sha256,
-      mimeType: "text/csv",
-      size: bytes.byteLength,
-      note: `Aus dem sevDesk-Export, Lauf ${importId.slice(0, 8)}`,
-      meta: { header: stack.header, dateFrom: from, dateTo: to, bookings: stack.bookings.length, warnings: stack.warnings },
-    })
-    .returning({ id: schema.archiveFiles.id });
-  await storeDatevBookings(tx, row!.id, stack.bookings);
-  return row!.id;
-}
+const storeZip = (tx: Tx, importId: string, upload: StagedSevdeskExport, year: number | null) =>
+  storeOriginal(
+    tx,
+    { filename: upload.filename, bytes: upload.bytes, mimeType: "application/zip" },
+    year,
+    `sevDesk-Export „Buchungsdaten & Belegbilder“, Lauf ${importId.slice(0, 8)}`,
+  );
 
 type Archive = ReturnType<typeof archiveVoucherOf>;
 

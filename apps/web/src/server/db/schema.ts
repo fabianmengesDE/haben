@@ -3428,7 +3428,18 @@ export const fastbillReceipts = pgTable("fastbill_receipts", {
 
 /** Woher ein Altbestand stammt */
 /** `sevdesk-export`: Belege aus der Export-ZIP „Buchungsdaten & Belegbilder“ von sevDesk, ohne API-Antwort in `raw` */
-export const LEGACY_SOURCES = ["lexoffice", "sevdesk", "buchhaltungsbutler", "accountable", "wiso", "import", "fastbill", "sevdesk-export"] as const;
+/** `papierkram`: Belege aus dem DATEV-Export von Papierkram (Buchungsstapel und Belegbilder), Schlüssel die Belegnummer */
+export const LEGACY_SOURCES = [
+  "lexoffice",
+  "sevdesk",
+  "buchhaltungsbutler",
+  "accountable",
+  "wiso",
+  "import",
+  "fastbill",
+  "sevdesk-export",
+  "papierkram",
+] as const;
 export type LegacySource = (typeof LEGACY_SOURCES)[number];
 
 /**
@@ -3488,6 +3499,28 @@ export type SevdeskExportProgress = {
   note?: string;
 };
 
+/** Analyse und Ergebnis eines Laufs mit dem DATEV-Export von Papierkram; Felder ohne `unknown` (serialisierbar) */
+export type PapierkramProgress = {
+  /** Namen der hochgeladenen Dateien */
+  files: string[];
+  size: number;
+  years: number[];
+  bookings: number;
+  vouchers: number;
+  /** davon mit Belegbild aus einer ZIP */
+  withFile: number;
+  /** mit Beleglink, aber ohne Belegbild im Upload */
+  missingFile: number;
+  /** ganz storniert (Generalumkehr) */
+  cancelled: number;
+  stacks: { name: string; from: string; to: string; state: "neu" | "vorhanden" | "zeitraum"; other?: string }[];
+  hints: string[];
+  hintCount: number;
+  archivedFileIds?: string[];
+  stackFileIds?: string[];
+  note?: string;
+};
+
 export type LexofficeImportProgress = {
   phase: "kontakte" | "liste" | "belege" | "fertig";
   contacts: number;
@@ -3513,6 +3546,8 @@ export type LexofficeImportProgress = {
   accountable?: AccountableProgress;
   /** sevDesk ohne API: Analyse der Export-ZIP und Ergebnis; nur beim Lauf mit der Export-ZIP gesetzt */
   sevdeskExport?: SevdeskExportProgress;
+  /** Papierkram: Analyse des DATEV-Exports und Ergebnis; nur beim Lauf mit dem Papierkram-Export gesetzt */
+  papierkram?: PapierkramProgress;
   /** FastBill: Startzeiten der API-Aufrufe der letzten Stunde (ms), damit ein neuer Lauf die Stundengrenze einhält */
   fastbillCalls?: number[];
   /** FastBill: wartet wegen der Stundengrenze bis zu diesem Zeitpunkt (ISO) */

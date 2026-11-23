@@ -5,7 +5,7 @@ import { buildVouchers } from "./belege.ts";
 import type { PkExportOptions, PkExportResult, PkFile, PkStack, PkUpload } from "./types.ts";
 
 /*
- * Liest den DATEV-Export von Papierkram (Auswertungen › DATEV Export), ohne Datenbank. Je Zeitraum gibt es zwei Dateien:
+ * Liest den DATEV-Export von Papierkram (Seite „DATEV Export“), ohne Datenbank. Je Zeitraum gibt es zwei Dateien:
  * - „Buchungsstapel“: `EXTF_Buchungsstapel_Gesamt_vom_<von>_bis_<bis>_<Konto>.csv`, Windows-1252, Herkunft „PK“ und
  *   „Papierkram.de“ im Kopf. Den Kontenrahmen lässt Papierkram dort leer.
  * - „Belegbilder“: `DATEV_Belegbilder_vom_<von>_bis_<bis>_<Konto>.zip`, flach mit `document.xml` (DATEV-XML-Schnittstelle,
@@ -63,6 +63,21 @@ function overlap(stacks: PkStack[]): string | null {
   return null;
 }
 
+/** Erlöskonto für Kleinunternehmer (§ 19 Abs. 1 UStG) nach den DATEV-Kontenrahmen */
+const KU_ERLOESE = { SKR03: "8195", SKR04: "4185" } as const;
+
+/**
+ * Jahre, in denen der Stapel Erlöse auf dem Konto für Kleinunternehmer bucht. Haben kennt den Status nur ab dem ersten
+ * Eintrag in den Firmendaten; ein Umzug bringt frühere Jahre mit. Papierkram bucht dort nur als Kleinunternehmer.
+ */
+function kleinunternehmerJahre(stacks: PkStack[]): Set<string> {
+  const years = new Set<string>();
+  for (const { stack, kontenrahmen } of stacks) {
+    for (const b of stack.bookings) if (b.account === KU_ERLOESE[kontenrahmen] && b.side === "H") years.add(b.date.slice(0, 4));
+  }
+  return years;
+}
+
 export function readPapierkramExport(uploads: PkUpload[], options: PkExportOptions): PkExportResult {
   const budget: Budget = { limits: DEFAULT_LIMITS, entries: 0, bytes: 0 };
   const hints: string[] = [];
@@ -81,6 +96,9 @@ export function readPapierkramExport(uploads: PkUpload[], options: PkExportOptio
   if (stacks.length === 0) return { ok: false, reason: "Es fehlt der Buchungsstapel (EXTF_Buchungsstapel_….csv) aus Papierkram." };
   const clash = overlap(stacks);
   if (clash) return { ok: false, reason: clash };
-  const { vouchers, orphanFiles } = buildVouchers(stacks, files, options, hints);
+  const kuYears = kleinunternehmerJahre(stacks);
+  for (const year of kuYears) hints.push(`${year}: Erlöse auf dem Konto für Kleinunternehmer; Haben rechnet das Jahr ohne Umsatz- und Vorsteuer.`);
+  const kleinunternehmerAm = (date: string) => options.kleinunternehmerAm(date) || kuYears.has(date.slice(0, 4));
+  const { vouchers, orphanFiles } = buildVouchers(stacks, files, { ...options, kleinunternehmerAm }, hints);
   return { ok: true, export: { stacks, vouchers, orphanFiles, hints } };
 }

@@ -19,8 +19,11 @@ export const AUTOMATIC: Record<Kontenrahmen, Record<string, number>> = {
   SKR04: { "4400": 19, "4300": 7, "5400": 19, "5300": 7 },
 };
 
-/** BU-Schlüssel mit Steuersatz in Prozent (2/3 Umsatzsteuer, 8/9 Vorsteuer) */
-export const BU_RATES: Record<string, number> = { "2": 7, "3": 19, "8": 7, "9": 19 };
+/**
+ * BU-Schlüssel mit Steuersatz in Prozent (2/3 Umsatzsteuer, 8/9 Vorsteuer). 401 ist der dreistellige Schlüssel für Vorsteuer
+ * 19 % neben 9 (DATEV-Steuerschlüsseltabelle); Papierkram schreibt ihn so.
+ */
+export const BU_RATES: Record<string, number> = { "2": 7, "3": 19, "8": 7, "9": 19, "401": 19 };
 
 /** Sachkonten mit mehr als vier Stellen (z. B. 84000) auf die Kontonummer gekürzt */
 export const shortAccount = (account: string) => (account.length > 4 ? account.slice(0, 4) : account);
