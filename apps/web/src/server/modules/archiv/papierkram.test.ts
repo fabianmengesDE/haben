@@ -82,7 +82,7 @@ describe.skipIf(!testDatabaseUrl)("Papierkram: DATEV-Export übernehmen (Postgre
     const analysis = await pk.analysePapierkramExport(files("SKR03"));
     expect(analysis).toMatchObject({ years: [2026], bookings: 5, vouchers: 3, withFile: 3, missingFile: 0, cancelled: 1 });
     expect(analysis.stacks).toEqual([{ name: CSV, from: "2026-01-05", to: "2026-12-31", state: "neu" }]);
-    const [{ n }] = await sql`select count(*)::int as n from lexoffice_vouchers`;
+    const n = (await sql`select count(*)::int as n from lexoffice_vouchers`)[0]!.n;
     expect(n).toBe(0);
     await expect(pk.analysePapierkramExport([{ name: ZIP, bytes: belegbilder([guid(1)]) }])).rejects.toThrow(/Buchungsstapel/);
     await expect(pk.startPapierkramImport(actor)).rejects.toThrow("Zuerst den Export hochladen.");
@@ -130,7 +130,7 @@ describe.skipIf(!testDatabaseUrl)("Papierkram: DATEV-Export übernehmen (Postgre
         files: 1,
       },
     ]);
-    const [{ bookings }] = await sql`select count(*)::int as bookings from datev_bookings`;
+    const bookings = (await sql`select count(*)::int as bookings from datev_bookings`)[0]!.bookings;
     expect(bookings).toBe(5);
 
     // Abgleich: Belege aus dem Export statt „per API“, bei Ist bleibt die Zahlungshistorie offen
@@ -153,7 +153,7 @@ describe.skipIf(!testDatabaseUrl)("Papierkram: DATEV-Export übernehmen (Postgre
     const second = await run(files("SKR03"));
     expect(second).toMatchObject({ status: "fertig", progress: { imported: 0, skipped: 3, files: 1 } });
     expect(second.papierkram?.stacks[0]?.state).toBe("vorhanden");
-    const [{ n }] = await sql`select count(*)::int as n from lexoffice_voucher_files`;
+    const n = (await sql`select count(*)::int as n from lexoffice_voucher_files`)[0]!.n;
     expect(n).toBe(3);
   });
 });
