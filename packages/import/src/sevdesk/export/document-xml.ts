@@ -25,7 +25,8 @@ function directionOf(type: string | null, archive: string): SevExportDirection |
   return null;
 }
 
-export function parseDocumentXml(bytes: Uint8Array, archive: string): DocumentXml {
+/** `system`: das Programm, das `generatingSystem` nennen muss (sevDesk, Papierkram) */
+export function parseDocumentXml(bytes: Uint8Array, archive: string, system = "sevDesk"): DocumentXml {
   let parsed: unknown;
   try {
     parsed = parser.parse(new TextDecoder("utf-8").decode(bytes), true);
@@ -35,17 +36,17 @@ export function parseDocumentXml(bytes: Uint8Array, archive: string): DocumentXm
   const archiveRoot = record(parsed).archive;
   if (archiveRoot === undefined) return { ok: false, reason: `${archive}: document.xml enthält kein archive-Element.` };
   const root = record(archiveRoot);
-  const system = text(root.generatingSystem);
-  if (system !== null && system !== "sevDesk") {
-    return { ok: false, reason: `${archive}: document.xml ist erzeugt von „${system}“, nicht von sevDesk.` };
+  const generator = text(root.generatingSystem);
+  if (generator !== null && generator !== system) {
+    return { ok: false, reason: `${archive}: document.xml ist erzeugt von „${generator}“, nicht von ${system}.` };
   }
   const content = record(root.content);
   if (
     (root.content !== undefined && root.content !== "" && typeof root.content !== "object") ||
     Object.keys(content).some((key) => key !== "document") ||
-    (system === null && content.document === undefined)
+    (generator === null && content.document === undefined)
   ) {
-    return { ok: false, reason: `${archive}: document.xml enthält keine erkennbare sevDesk-Dateiliste.` };
+    return { ok: false, reason: `${archive}: document.xml enthält keine erkennbare ${system}-Dateiliste.` };
   }
   const documents: SevExportDocument[] = [];
   const hints: string[] = [];
