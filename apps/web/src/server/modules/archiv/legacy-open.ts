@@ -9,7 +9,7 @@ import {
   type LegacyOpenAt,
   type TakeoverCutoff,
 } from "@haben/core";
-import { and, eq, getTableColumns, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, inArray, isNotNull, notInArray, or, sql } from "drizzle-orm";
 import { withActor } from "../../db/actor.ts";
 import { ohneJit } from "../../db/ohne-jit.ts";
 import { loadSevdeskAccountCategories, sevdeskExpenseCategory, sevdeskPositionAccountsOf } from "./sevdesk-kategorie.ts";
@@ -39,6 +39,7 @@ const SOURCE_LABEL = {
   import: "JSON-Import",
   fastbill: "FastBill",
   "sevdesk-export": "sevDesk",
+  papierkram: "Papierkram",
 } as const;
 
 export interface OpenLegacyItem {
@@ -143,10 +144,11 @@ async function openItemVouchers() {
       })
       .from(schema.lexofficeVouchers)
       // Auch die gespeicherte Art: Früher als Ausgabebeleg übernommene D-Belege bleiben als übernommen sichtbar. Belege aus der
-      // Export-ZIP von sevDesk kennen keinen Zahlungsstand; offene Posten von dort trägt man von Hand ein (#1105)
+      // Export-ZIP von sevDesk und aus dem DATEV-Export von Papierkram kennen keinen Zahlungsstand; offene Posten von dort
+      // trägt man von Hand ein (#1105)
       .where(
         and(
-          ne(schema.lexofficeVouchers.source, "sevdesk-export"),
+          notInArray(schema.lexofficeVouchers.source, ["sevdesk-export", "papierkram"]),
           or(inArray(effectiveType("lexoffice_vouchers"), [...OPEN_ITEM_TYPES]), inArray(schema.lexofficeVouchers.type, [...OPEN_ITEM_TYPES])),
         ),
       )

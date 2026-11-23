@@ -15,6 +15,7 @@ import { BuchhaltungsButlerImport } from "./BuchhaltungsButlerImport.tsx";
 import { SevdeskAssets } from "./SevdeskAssets.tsx";
 import { WisoImport } from "./WisoImport.tsx";
 import { SevdeskExportImport } from "./SevdeskExportImport.tsx";
+import { PapierkramImport } from "./PapierkramImport.tsx";
 import { FastbillReceipts } from "./FastbillReceipts.tsx";
 import { fastbillUsageText, FastbillArticles, FastbillLoginFields } from "./FastbillTeile.tsx";
 import { FastbillZeiten } from "./FastbillZeiten.tsx";
@@ -32,6 +33,7 @@ function startSource(data: MigrationData): Source {
   if (data.accountableImport) return "accountable";
   if (data.bbImport) return "buchhaltungsbutler";
   if (data.wisoImport) return "wiso";
+  if (data.papierkramImport) return "papierkram";
   return "lexoffice";
 }
 
@@ -39,6 +41,7 @@ function lastImportOf(data: MigrationData, source: Source) {
   const imports = {
     buchhaltungsbutler: data.bbImport,
     wiso: data.wisoImport,
+    papierkram: data.papierkramImport,
     sevdesk: data.sevdeskImport,
     fastbill: data.fastbillImport,
     accountable: data.accountableImport,
@@ -117,6 +120,8 @@ export function Migration({ data }: { data: MigrationData }) {
         <BuchhaltungsButlerImport key="buchhaltungsbutler" initial={data.bbImport} />
       ) : source === "wiso" ? (
         <WisoImport key="wiso" initial={data.wisoImport} />
+      ) : source === "papierkram" ? (
+        <PapierkramImport key={`papierkram-${data.papierkramImport?.id ?? "neu"}`} initial={data.papierkramImport} />
       ) : source === "accountable" ? (
         <ImportCard key={`accountable-${lastImport?.id ?? "neu"}`} source="accountable" connected initial={lastImport} />
       ) : (
@@ -147,6 +152,7 @@ export function Migration({ data }: { data: MigrationData }) {
             data.accountableImport ||
             data.bbImport ||
             data.wisoImport ||
+            data.papierkramImport ||
             data.externalImports.length,
         )}
       />

@@ -27,10 +27,15 @@ export function truncatedNumberMatches(alias: string, value: SQL): SQL<boolean> 
       or lower(right(regexp_replace(${table}.number, '\\s+', '', 'g'), ${length})) = ${wanted}))))`;
 }
 
-/** Gibt es zur Belegnummer der Buchung einen Beleg? Ohne Leerzeichen, Groß-/Kleinschreibung egal. */
+/**
+ * Gibt es zur Belegnummer der Buchung einen Beleg? Ohne Leerzeichen, Groß-/Kleinschreibung egal. Papierkram schreibt
+ * Abschreibungen zum Jahresende mit `Ref-<Belegnummer>` der Anschaffung (echte Exporte 2025 und 2026); sie gehören zu
+ * deren Beleg.
+ */
 export function datevVoucherFound(field: string): SQL<boolean> {
   const exact = sql.raw(`${normalized("v.number")} = ${normalized(field)}`);
-  return sql<boolean>`exists (select 1 from lexoffice_vouchers v where v.number <> '' and (${exact} or ${truncatedNumberMatches("v", sql.raw(field))}))`;
+  const reference = sql.raw(`(v.source = 'papierkram' and 'ref-' || ${normalized("v.number")} = ${normalized(field)})`);
+  return sql<boolean>`exists (select 1 from lexoffice_vouchers v where v.number <> '' and (${exact} or ${reference} or ${truncatedNumberMatches("v", sql.raw(field))}))`;
 }
 
 /** Die GUID aus einem Beleglink `BEDI "<guid>"`, sonst null */
@@ -42,13 +47,14 @@ function linkGuid(linkField: string): SQL {
  * Accountable hängt an jede Buchung einen Beleglink `BEDI "<guid>"` und legt den Beleg unter derselben
  * GUID ab. Eine Rechnung kann mehrere Buchungszeilen haben (Hauptbetrag, Versand, Kleinteile); nur die
  * erste Zeile trägt dann die Belegnummer. Über die GUID finden auch die übrigen Zeilen ihren Beleg.
- * Ebenso die Belege aus der Export-ZIP von sevDesk (#1106): Schlüssel ist dort die GUID aus dem Beleglink.
+ * Ebenso die Belege aus der Export-ZIP von sevDesk (#1106) und aus dem DATEV-Export von Papierkram: Sie tragen die GUID
+ * aus dem Beleglink.
  */
 export function datevGuidFound(linkField: string): SQL<boolean> {
   const guid = linkGuid(linkField);
   return sql<boolean>`(${guid} is not null and exists (
     select 1 from lexoffice_vouchers g
-     where g.source in ('accountable', 'sevdesk-export') and lower(g.raw->>'guid') = lower(${guid})))`;
+     where g.source in ('accountable', 'sevdesk-export', 'papierkram') and lower(g.raw->>'guid') = lower(${guid})))`;
 }
 
 /**

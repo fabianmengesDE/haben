@@ -14,7 +14,7 @@ edit_uri: edit/main/docs/
 copyright: >-
   Lizenz AGPL-3.0 · Keine Steuerberatung. ELSTER und ERiC sind Angebote der
   Finanzverwaltung; dieses Projekt steht in keiner Verbindung zu ihr. Lexware Office
-  (Lexoffice), sevDesk, FastBill, BuchhaltungsButler, Accountable, WISO und DATEV sind
+  (Lexoffice), sevDesk, FastBill, BuchhaltungsButler, Accountable, WISO, Papierkram und DATEV sind
   Marken ihrer Inhaber; Haben steht mit diesen Unternehmen nicht in Verbindung und wird
   von ihnen weder unterstützt noch geprüft.
   · Partnerprogramm für IT-Dienstleister, Hoster und Steuerberatungen: <a href="https://speicherstadt.app/partner/">speicherstadt.app/partner/</a>
@@ -99,6 +99,7 @@ nav:
       - Umzug aus BuchhaltungsButler: buchhaltungsbutler.md
       - Umzug aus Accountable: accountable.md
       - Umzug aus WISO EÜR & Kasse: wiso.md
+      - Umzug aus Papierkram: papierkram.md
       - CSV-Import: csv-import.md
       - Belegimport: belegimport.md
   - Schnittstellen:

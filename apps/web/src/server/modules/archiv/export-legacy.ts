@@ -23,6 +23,7 @@ const LEGACY_SOURCE_LABELS = {
   import: "JSON-Import",
   fastbill: "FastBill",
   "sevdesk-export": "sevDesk-Export",
+  papierkram: "Papierkram",
 } as const;
 
 const LEGACY_TYPE_LABELS: Record<string, string> = {

@@ -10,6 +10,7 @@ export const LEGACY_SOURCE: Record<LegacySource, { name: string; product: string
   import: { name: "JSON-Import", product: "Quellprogramm" },
   fastbill: { name: "FastBill", product: "FastBill" },
   "sevdesk-export": { name: "sevDesk-Export", product: "sevDesk" },
+  papierkram: { name: "Papierkram", product: "Papierkram" },
 };
 
 /** Beim JSON-Import nennt das Paket das Quellprogramm selbst */

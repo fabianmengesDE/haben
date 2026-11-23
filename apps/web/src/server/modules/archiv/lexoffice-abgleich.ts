@@ -6,7 +6,7 @@ import { fileCheck, fileCounts, legacyFileStatus, OPEN_FILE_STATUSES } from "./d
 import { bookingsCheckDetail } from "./datev-abgleich.ts";
 import { fastbillPartlyCanceledChecks, fastbillWaitingChecks } from "./fastbill-abgleich.ts";
 import type { AbgleichArchiv, AbgleichBelege, ReconciliationCheck } from "./lexoffice.ts";
-import { SEVDESK_EXPORT_IST_CHECK, sevdeskExportIstIssue, sevdeskExportYear, voucherSourceChecks, withoutExportImage } from "./sevdesk-export-abgleich.ts";
+import { exportIstCheck, sevdeskExportIstIssue, sevdeskExportYear, voucherSourceChecks, withoutExportImage } from "./sevdesk-export-abgleich.ts";
 import { accountingTypeChecks, ACCOUNTING_TYPE_VAT_ISSUE, unclearAccountingTypes } from "./sevdesk-kontoart.ts";
 import { vatFieldsOf } from "./sevdesk-steuerarten.ts";
 
@@ -186,7 +186,7 @@ function jahresPruefungen(
   const nurAccountable = d.voucherRows.length > 0 && d.voucherRows.every((v) => v.source === "accountable");
   return [
     ...(paymentIssueOf(year, d) ? [{ ok: false, label: "Zahlungshistorie vollständig", detail: paymentIssueOf(year, d)! }] : []),
-    ...(exportIstIssueOf(year, d) ? [SEVDESK_EXPORT_IST_CHECK] : []),
+    ...(exportIstIssueOf(year, d) ? [exportIstCheck(sevdeskExport?.label ?? "sevDesk-Export")] : []),
     ...accountingTypeChecks(unclearAccountsIn(year, d)),
     ...fastbillWaitingChecks(d.fastbillWaiting.get(year)),
     ...fastbillPartlyCanceledChecks(d.fastbillPartlyCanceled.get(year)),

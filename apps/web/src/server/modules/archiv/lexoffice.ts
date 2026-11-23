@@ -757,7 +757,7 @@ function neutralKindOf(v: { privat: boolean; categories: LegacyCategoryRow[]; ta
 }
 
 /** Belege nur als Archiv (Suche, Datei): Summen und Umsatzsteuer ihrer Jahre kommen aus dem DATEV-Buchungsstapel */
-const ARCHIVE_ONLY_SOURCES = new Set<LegacySource>(["buchhaltungsbutler", "sevdesk-export"]);
+const ARCHIVE_ONLY_SOURCES = new Set<LegacySource>(["buchhaltungsbutler", "sevdesk-export", "papierkram"]);
 
 export type ReconciliationCheck = { ok: boolean; label: string; detail: string };
 
